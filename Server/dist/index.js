@@ -18,7 +18,9 @@ app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use((0, cors_1.default)({
     origin: process.env.FRONTEND_URL,
-    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow specific HTTP methods
+    allowedHeaders: ['Content-Type', 'Authorization'], // Allow specific headers
+    credentials: true // Allow cookies (if needed)
 }));
 app.use('/api/auth', auth_routes_1.default);
 app.use('/api/patients', patient_routes_1.default);
