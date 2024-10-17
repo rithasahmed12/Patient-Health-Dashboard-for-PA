@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, ChevronRight, User, Sliders, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import { Range, getTrackBackground } from 'react-range';
 import { useNavigate } from 'react-router-dom';
+import { fetchPatients } from '../../api/api';
 
 interface Patient {
   _id: string;
@@ -12,35 +13,7 @@ interface Patient {
   lastVisit: string;
 }
 
-interface PatientsResponse {
-  patients: Patient[];
-  totalCount: number;
-  totalPages: number;
-  currentPage: number;
-}
 
-const fetchPatients = async (
-  page: number,
-  limit: number,
-  searchTerm: string,
-  minAge: number,
-  maxAge: number
-): Promise<PatientsResponse> => {
-  try {
-    const response = await fetch(
-      `http://127.0.0.1:5000/api/patients/get?page=${page}&limit=${limit}&searchTerm=${searchTerm}&minAge=${minAge}&maxAge=${maxAge}`
-    );
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
-    }
-    const data = await response.json();
-    console.log(data);
-    return data;
-  } catch (error) {
-    console.error('Error fetching patients:', error);
-    return { patients: [], totalCount: 0, totalPages: 0, currentPage: 1 };
-  }
-};
 
 const PatientList: React.FC = () => {
   const [patients, setPatients] = useState<Patient[]>([]);

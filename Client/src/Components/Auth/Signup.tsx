@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { Eye, EyeOff } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Signup as SignupAPI } from '../../api/api';
 import { toast } from 'react-hot-toast';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { setCredentials } from '../../Redux/slice/userSlice';
 
 
@@ -27,6 +27,13 @@ const Signup: React.FC = () => {
 
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
   const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
+
+  const {userInfo} = useSelector((state:any)=> state.auth);
+  useEffect(()=>{
+    if(userInfo){
+      navigate("/dashboard");
+    }
+  },[])
 
 
   const handleSubmit = async (values: { email: string; password: string; confirmPassword: string; role: string }, { setSubmitting }: any) => {

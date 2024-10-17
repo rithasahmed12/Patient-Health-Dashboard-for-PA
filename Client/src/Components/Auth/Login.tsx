@@ -7,10 +7,15 @@ import { Login as LoginAPI } from '../../api/api'; // Make sure to import your L
 import { toast } from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { setCredentials } from '../../Redux/slice/userSlice';
+import { jwtDecode } from 'jwt-decode';
 
 interface LoginFormValues {
   email: string;
   password: string;
+}
+
+interface TokenPayload {
+  role: string;
 }
 
 const LoginSchema = Yup.object().shape({
@@ -38,19 +43,38 @@ const Login: React.FC = () => {
     values: LoginFormValues,
     { setSubmitting }: FormikHelpers<LoginFormValues>
   ) => {
-    setIsLoading(true);
+    setIsLoading(true); 
+    
     try {
       const response = await LoginAPI({
         email: values.email,
         password: values.password,
       });
-      console.log('response:',response)
+  
+      console.log('response:', response);
+  
       if (response && response.status === 200) {
         toast.success("Login Successful!");
+  
+        const token = response.data.token;
+        
+        // Decode the token to extract the role
+        const decodedToken: TokenPayload = jwtDecode(token);
+  
+        // Dispatch credentials to Redux or handle however needed
         dispatch(setCredentials(response.data));
-        navigate('/'); 
+  
+        // Navigate based on the role
+        if (decodedToken.role === 'provider') {
+          navigate('/dashboard'); // provider dashboard
+        } else if (decodedToken.role === 'payer') {
+          navigate('/insurance/dashboard'); // payer dashboard
+        } else {
+          toast.error('Invalid role. Please contact support.');
+        }
+  
       } else {
-        toast.error('An error occurred during login');
+        toast.error('Invalid email or password!');
       }
     } catch (error) {
       console.error('Login error:', error);

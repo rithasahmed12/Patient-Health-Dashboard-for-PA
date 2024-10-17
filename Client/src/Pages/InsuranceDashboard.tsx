@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { FileText, User, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { getPriorAuthorizationList } from '../../api/api';
+import { User, ChevronLeft, ChevronRight, CheckCircle, XCircle } from 'lucide-react';
+import { getPriorAuthorizationList, updateAuthorizationStatus } from '../api/api';
+import Modal from 'react-modal';
 
 interface Authorization {
   _id: string;
@@ -23,13 +23,18 @@ interface Authorization {
   timestamp: string;
 }
 
-const PriorAuthorizationList: React.FC = () => {
+Modal.setAppElement('#root');
+
+const InsuranceDashboard: React.FC = () => {
   const [authorizations, setAuthorizations] = useState<Authorization[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedAuthorization, setSelectedAuthorization] = useState<Authorization | null>(null);
+  const [newStatus, setNewStatus] = useState<'approved' | 'denied' | null>(null);
   const itemsPerPage = 5;
 
   useEffect(() => {
@@ -41,11 +46,10 @@ const PriorAuthorizationList: React.FC = () => {
       setIsLoading(true);
       const response = await getPriorAuthorizationList();
       
-      if(response && response.status === 200){
+      if (response && response.status === 200) {
         setAuthorizations(response.data);
         setTotalPages(Math.ceil(response.data.length / itemsPerPage));
       }
-      
     } catch (error) {
       console.error("Error loading authorizations:", error);
       setAuthorizations([]);
@@ -54,6 +58,30 @@ const PriorAuthorizationList: React.FC = () => {
     }
   };
 
+  const openModal = (authorization: Authorization, status: 'approved' | 'denied') => {
+    setSelectedAuthorization(authorization);
+    setNewStatus(status);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedAuthorization(null);
+    setNewStatus(null);
+  };
+
+  const confirmStatusUpdate = async () => {
+    if (selectedAuthorization && newStatus) {
+      try {
+        await updateAuthorizationStatus(selectedAuthorization._id, newStatus);
+        loadAuthorizations();
+      } catch (error) {
+        console.error("Error updating authorization status:", error);
+      } finally {
+        closeModal();
+      }
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -76,7 +104,7 @@ const PriorAuthorizationList: React.FC = () => {
     setStatusFilter(e.target.value);
   };
 
-  const filteredAuthorizations = authorizations.filter(auth => 
+  const filteredAuthorizations = authorizations.filter(auth =>
     auth.patient.label.toLowerCase().includes(searchQuery.toLowerCase()) &&
     (statusFilter ? auth.status.toLowerCase() === statusFilter.toLowerCase() : true)
   );
@@ -87,8 +115,9 @@ const PriorAuthorizationList: React.FC = () => {
   );
 
   return (
+    <>
     <div className="container mx-auto px-4 py-8">
-      <h2 className="text-3xl font-bold mb-6 text-gray-800">Prior Authorization List</h2>
+      <h2 className="text-3xl font-bold mb-6 text-gray-800">Insurance Dashboard</h2>
 
       <div className="mb-4 flex justify-between items-center">
         <input
@@ -110,15 +139,6 @@ const PriorAuthorizationList: React.FC = () => {
         </select>
       </div>
 
-      <div className="mb-4 text-right">
-        <Link to="/prior-auth-form">
-          <button className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 flex transition duration-200">
-            <FileText className="mr-2" size={20} />
-            Get Prior Authorization
-          </button>
-        </Link>
-      </div>
-
       {isLoading ? (
         <div className="text-center py-8">Loading...</div>
       ) : (
@@ -129,11 +149,14 @@ const PriorAuthorizationList: React.FC = () => {
                 <tr className="bg-gray-100 text-gray-700">
                   <th className="px-4 py-2 text-left">Patient ID</th>
                   <th className="px-4 py-2 text-left">Patient Name</th>
+                  <th className="px-4 py-2 text-left">Prescriber Name</th>
+                  <th className="px-4 py-2 text-left">Prescriber Specialty</th>
                   <th className="px-4 py-2 text-left">Treatment Type</th>
                   <th className="px-4 py-2 text-left">Insurance Name</th>
                   <th className="px-4 py-2 text-left">Date of Service</th>
                   <th className="px-4 py-2 text-left">Diagnosis Code</th>
                   <th className="px-4 py-2 text-left">Status</th>
+                  <th className="px-4 py-2 text-left">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -141,6 +164,8 @@ const PriorAuthorizationList: React.FC = () => {
                   <tr key={authorization._id} className="border-t">
                     <td className="px-4 py-4">{authorization.patient.value}</td>
                     <td className="px-4 py-4">{authorization.patient.label}</td>
+                    <td className="px-4 py-2">{authorization.prescriberName}</td>
+                    <td className="px-4 py-2">{authorization.prescriberSpecialty}</td>
                     <td className="px-4 py-2">{authorization.treatmentType}</td>
                     <td className="px-4 py-2">{authorization.insuranceName}</td>
                     <td className="px-4 py-2">{new Date(authorization.dateOfService).toLocaleDateString()}</td>
@@ -149,6 +174,24 @@ const PriorAuthorizationList: React.FC = () => {
                       <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(authorization.status)}`}>
                         {authorization.status}
                       </span>
+                    </td>
+                    <td className="px-4 py-2">
+                      {authorization.status === 'pending' && (
+                        <>
+                          <button
+                            onClick={() => openModal(authorization, 'approved')}
+                            className="text-green-500 hover:text-green-700 mr-2"
+                          >
+                            <CheckCircle size={20} />
+                          </button>
+                          <button
+                            onClick={() => openModal(authorization, 'denied')}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <XCircle size={20} />
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -165,21 +208,40 @@ const PriorAuthorizationList: React.FC = () => {
                     <h3 className="text-xl font-semibold text-gray-800">{authorization.patient.label}</h3>
                   </div>
                   <p className="text-gray-600 mb-2"><span className="font-semibold">Patient ID:</span> {authorization.patient.value}</p>
+                  <p className="text-gray-600 mb-2"><span className="font-semibold">Prescriber Name:</span> {authorization.prescriberName}</p>
+                  <p className="text-gray-600 mb-2"><span className="font-semibold">Prescriber Specialty:</span> {authorization.prescriberSpecialty}</p>
                   <p className="text-gray-600 mb-2"><span className="font-semibold">Treatment Type:</span> {authorization.treatmentType}</p>
                   <p className="text-gray-600 mb-2"><span className="font-semibold">Insurance Name:</span> {authorization.insuranceName}</p>
                   <p className="text-gray-600 mb-2"><span className="font-semibold">Date of Service:</span> {new Date(authorization.dateOfService).toLocaleDateString()}</p>
                   <p className="text-gray-600 mb-2"><span className="font-semibold">Diagnosis Code:</span> {authorization.diagnosisCode}</p>
-                  <div className="flex items-center justify-between">
-                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(authorization.status)}`}>
+                  <p className="text-gray-600 mb-2">
+                    <span className="font-semibold">Status:</span>
+                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(authorization.status)} ml-2`}>
                       {authorization.status}
                     </span>
-                  </div>
+                  </p>
+                  {authorization.status === 'pending' && (
+                    <div className="mt-4 flex justify-between">
+                      <button
+                        onClick={() => openModal(authorization, 'approved')}
+                        className="text-green-500 hover:text-green-700"
+                      >
+                        <CheckCircle size={24} />
+                      </button>
+                      <button
+                        onClick={() => openModal(authorization, 'denied')}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <XCircle size={24} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
           </div>
 
-           <div className="mt-8 flex justify-center">
+          <div className="mt-8 flex justify-center">
             <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
@@ -214,8 +276,43 @@ const PriorAuthorizationList: React.FC = () => {
           </div>
         </>
       )}
+
+<Modal
+        isOpen={showModal}
+        onRequestClose={closeModal}
+        contentLabel="Confirm Status Update"
+        className="fixed inset-0 flex items-center justify-center"
+        overlayClassName="fixed inset-0 bg-black bg-opacity-50"
+      >
+        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md mx-auto">
+          <h3 className="text-xl font-semibold mb-4">Confirm Status Update</h3>
+          <p className="text-gray-700 mb-4">
+            Are you sure you want to mark the authorization for{' '}
+            <span className="font-semibold">{selectedAuthorization?.patient.label}</span> as{' '}
+            <span className={`font-semibold ${newStatus === 'approved' ? 'text-green-600' : 'text-red-600'}`}>
+              {newStatus === 'approved' ? 'Approved' : 'Denied'}
+            </span>
+            ?
+          </p>
+          <div className="flex justify-end">
+            <button
+              onClick={confirmStatusUpdate}
+              className="px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 mr-2"
+            >
+              Confirm
+            </button>
+            <button
+              onClick={closeModal}
+              className="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
+    </>
   );
 };
 
-export default PriorAuthorizationList;
+export default InsuranceDashboard;

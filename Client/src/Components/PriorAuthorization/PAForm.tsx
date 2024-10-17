@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
-import { Formik, Form, Field, ErrorMessage, FormikHelpers } from 'formik';
+import React, { useEffect, useState } from 'react';
+import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import Select from 'react-select';
-
-const patient = [
-  { label: 'John Doe', value: '1' },
-  { label: 'Jane Smith', value: '2' },
-  { label: 'Bob Johnson', value: '3' },
-  { label: 'Alice Williams', value: '4' }
-];
+import { getAllPatients, submitPriorAuthorization } from '../../api/api';
+import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 const PriorAuthorizationSchema = Yup.object().shape({
+  patient: Yup.object().shape({
+    value: Yup.string().required('Patient selection is required'),
+    label: Yup.string().required('Patient selection is required'),
+  }).nullable().required('Patient selection is required'),
   insuranceName: Yup.string().required('Insurance Name is required'),
   insuranceDetails: Yup.string().required('Insurance Details are required'),
   prescriberName: Yup.string().required('Prescriber Name is required'),
@@ -20,13 +20,11 @@ const PriorAuthorizationSchema = Yup.object().shape({
   treatmentDetails: Yup.string().required('Treatment details are required'),
   treatmentType: Yup.string().required('Treatment Type is required'),
   diagnosisCode: Yup.string().required('Diagnosis Code is required'),
-  patient: Yup.object().shape({
-    label: Yup.string().required('Employee selection is required'),
-  }).nullable(),
   dateOfService: Yup.date().required('Date of Service is required'),
 });
 
-interface PriorAuthorizationFormValues {
+export interface PriorAuthorizationFormValues {
+  patient: { label: string; value: string } | null;
   insuranceName: string;
   insuranceDetails: string;
   prescriberName: string;
@@ -36,35 +34,57 @@ interface PriorAuthorizationFormValues {
   treatmentDetails: string;
   treatmentType: string;
   diagnosisCode: string;
-  patient: { label: string; value: string } | null;
   dateOfService: string;
 }
 
 const PriorAuthorizationForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [patients, setPatients] = useState<{ label: string; value: string }[]>([]);
+  const navigate = useNavigate();
 
-  const handleSubmit = async (
-    values: PriorAuthorizationFormValues,
-    { setSubmitting }: FormikHelpers<PriorAuthorizationFormValues>
-  ) => {
-    setIsLoading(true);
+  useEffect(() => {
+    fetchPatients();
+  }, []);
+
+  const fetchPatients = async () => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      console.log(values);
+      const response = await getAllPatients();
+      if (response && response.status === 200) {
+        const formattedPatients = response.data.map((patient: any) => ({
+          value: patient.patientId,
+          label: patient.name,
+        }));
+        setPatients(formattedPatients);
+      }
     } catch (error) {
-      console.error('Authorization error:', error);
-    } finally {
-      setIsLoading(false);
-      setSubmitting(false);
+      console.error('Error fetching patients:', error);
     }
   };
 
+  const handleSubmit = async (values: PriorAuthorizationFormValues) => {
+    setIsLoading(true);
+    try {
+      const response = await submitPriorAuthorization(values);
+      console.log('Prior Authorization submitted:', response);
+      if(response && response.status == 201){
+        toast.success("Prior authorization Send Successfully!");
+        navigate('/prior-auth');
+      }
+    } catch (error) {
+      console.error('Authorization error:', error);
+      toast.error('Something went wrong please try again later!')
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
-    <div className="w-full bg-gray-100 flex items-center justify-center p-4">
+    <div className="w-full flex items-center justify-center p-4">
       <div className="w-full max-w-2xl bg-white shadow-lg rounded-lg p-6 flex flex-col">
         <h2 className="mb-8 text-xl font-semibold text-center">Prior Authorization Form</h2>
         <Formik<PriorAuthorizationFormValues>
           initialValues={{
+            patient: null,
             insuranceName: '',
             insuranceDetails: '',
             prescriberName: '',
@@ -74,13 +94,12 @@ const PriorAuthorizationForm: React.FC = () => {
             treatmentDetails: '',
             treatmentType: '',
             diagnosisCode: '',
-            patient: null,
             dateOfService: '',
           }}
           validationSchema={PriorAuthorizationSchema}
           onSubmit={handleSubmit}
         >
-          {({ isSubmitting, setFieldValue }) => (
+          {({ setFieldValue, isSubmitting }) => (
             <Form className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Left Side Fields */}
               <div className="flex flex-col">
@@ -88,12 +107,25 @@ const PriorAuthorizationForm: React.FC = () => {
                 <div className="mb-6">
                   <label className="block mb-1">Select Patient*</label>
                   <Select
-                    options={patient}
-                    onChange={(option) => setFieldValue('patient', option)}
+                    options={patients}
+                    onChange={(selectedOption) => {
+                      setFieldValue('patient', selectedOption);
+                      // When a patient is selected, you can perform any necessary actions here
+                      // For example, you might want to fetch additional patient details
+                      if (selectedOption) {
+                        console.log('Selected Patient:', {
+                          name: selectedOption.label,
+                          patientId: selectedOption.value
+                        });
+                        // Here you could call an API to get more patient details if needed
+                      }
+                    }}
                     placeholder="Select patient..."
                     isSearchable
+                    className="react-select-container"
+                    classNamePrefix="react-select"
                   />
-                  <ErrorMessage name="patient.label" component="div" className="text-red-500 text-sm mt-1" />
+                  <ErrorMessage name="patient" component="div" className="text-red-500 text-sm mt-1" />
                 </div>
 
                 {/* Insurance Name */}
@@ -137,7 +169,7 @@ const PriorAuthorizationForm: React.FC = () => {
 
                 {/* Prescriber Specialty */}
                 <div className="mt-4">
-                  <label htmlFor="prescriberSpecialty" className="block mb-1">Specialty*</label>
+                  <label htmlFor="prescriberSpecialty" className="block mb-1">Prescriber Specialty*</label>
                   <Field
                     type="text"
                     id="prescriberSpecialty"
@@ -147,10 +179,9 @@ const PriorAuthorizationForm: React.FC = () => {
                   />
                   <ErrorMessage name="prescriberSpecialty" component="div" className="text-red-500 text-sm mt-1" />
                 </div>
-
-                {/* Prescriber Phone */}
+                {/* prescriber phone */}
                 <div className="mt-4">
-                  <label htmlFor="prescriberPhone" className="block mb-1">Phone*</label>
+                  <label htmlFor="prescriberPhone" className="block mb-1">Prescriber Phone*</label>
                   <Field
                     type="text"
                     id="prescriberPhone"
@@ -164,9 +195,10 @@ const PriorAuthorizationForm: React.FC = () => {
 
               {/* Right Side Fields */}
               <div className="flex flex-col">
+
                 {/* Prescriber Email */}
-                <div className="mb-6">
-                  <label htmlFor="prescriberEmail" className="block mb-1">Email*</label>
+                <div className='mb-6'>
+                  <label htmlFor="prescriberEmail" className="block mb-1">Prescriber Email*</label>
                   <Field
                     type="email"
                     id="prescriberEmail"
@@ -178,7 +210,7 @@ const PriorAuthorizationForm: React.FC = () => {
                 </div>
 
                 {/* Treatment Details */}
-                <div className="mb-6">
+                <div>
                   <label htmlFor="treatmentDetails" className="block mb-1">Treatment Details*</label>
                   <Field
                     type="text"
@@ -191,7 +223,7 @@ const PriorAuthorizationForm: React.FC = () => {
                 </div>
 
                 {/* Treatment Type */}
-                <div className="mb-6">
+                <div className="mt-4 mb-4">
                   <label htmlFor="treatmentType" className="block mb-1">Treatment Type*</label>
                   <Field
                     type="text"
@@ -204,7 +236,7 @@ const PriorAuthorizationForm: React.FC = () => {
                 </div>
 
                 {/* Diagnosis Code */}
-                <div className="mb-6">
+                <div className="mb-4">
                   <label htmlFor="diagnosisCode" className="block mb-1">Diagnosis Code*</label>
                   <Field
                     type="text"
@@ -217,7 +249,7 @@ const PriorAuthorizationForm: React.FC = () => {
                 </div>
 
                 {/* Date of Service */}
-                <div className="mb-6">
+                <div className="mb-4">
                   <label htmlFor="dateOfService" className="block mb-1">Date of Service*</label>
                   <Field
                     type="date"
