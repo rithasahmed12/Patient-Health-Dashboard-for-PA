@@ -24,6 +24,22 @@ export const getPatient = async (req: Request, res: Response) => {
 }
 
 
+export const getAllPatients = async (req: Request, res: Response) => {
+    try {
+        const patients = await PatientModel.find();
+
+        if (!patients) {
+            return res.status(404).json({ message: 'Patients not found' });
+        }
+
+        res.status(200).json(patients);
+    } catch (error) {
+        console.error('Error in getPatient:', error);
+        res.status(500).json({ message: 'Internal server error', error: error });
+    }
+}
+
+
 export const getPatients = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;

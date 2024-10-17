@@ -6,6 +6,7 @@ import cors from 'cors';
 
 import authRouter from "./routes/auth.routes";
 import patientRouter from "./routes/patient.routes";
+import priorAuthRouter from "./routes/prior-auth.routes";
 
 const port = process.env.PORT || 5000;
 
@@ -22,7 +23,8 @@ app.use(cors({
 }));
 
 app.use('/api/auth',authRouter)  
-app.use('/api/patients',patientRouter)  
+app.use('/api/patients',patientRouter);
+app.use('/api/prior-authorizations',priorAuthRouter);  
 
 
 app.get('/',(req,res)=> res.send('Server is ready'))
