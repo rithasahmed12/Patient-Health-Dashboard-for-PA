@@ -1,4 +1,4 @@
-import  express  from "express";
+import  express, { Request, Response }  from "express";
 import dotenv from 'dotenv'
 dotenv.config();
 import connectDB from "./config/db"; 
@@ -27,7 +27,7 @@ app.use('/api/patients',patientRouter);
 app.use('/api/prior-authorizations',priorAuthRouter);  
 
 
-app.get('/',(req,res)=> res.send('Server is ready'))
+app.get('/',(req:Request,res:Response)=> res.send('Server is ready'))
 
 
 app.listen(port,()=>{
