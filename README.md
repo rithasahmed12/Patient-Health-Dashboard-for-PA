@@ -150,5 +150,3 @@ npm run dev
 This project is licensed under the MIT License.
 
 ---
-
-This README provides a comprehensive guide to setting up, running, and understanding your project. Let me know if you'd like further changes!
