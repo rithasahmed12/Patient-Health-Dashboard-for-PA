@@ -95,7 +95,7 @@ npm install
 Create a `.env` file in the `Client` directory and add the following environment variable:
 
 ```bash
-VITE_BASE_URL=http://localhost:5000
+VITE_BASE_URL=http://localhost:5000/
 ```
 
 Run the React app:
