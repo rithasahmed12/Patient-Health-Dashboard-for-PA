@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Calendar, Pill, Activity, FileText, User} from 'lucide-react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { getPatient } from '../../api/api';
 
 
@@ -153,9 +153,11 @@ const PatientView: React.FC = () => {
         </div>
       </div>
       <div className="mt-6">
+        <Link to='/prior-auth-form'>
         <button className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition duration-300 flex items-center justify-center w-full sm:w-auto">
           <FileText className="mr-2" size={20} /> Submit Prior Authorization
         </button>
+        </Link>
       </div>
     </div>
   );

@@ -265,7 +265,7 @@ const PriorAuthorizationForm: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isSubmitting || isLoading}
-                    className="w-full py-2 px-4 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    className="w-full py-2 px-4 bg-l-blue text-white rounded hover:bg-lh-blue"
                   >
                     {isLoading ? 'Submitting...' : 'Submit'}
                   </button>

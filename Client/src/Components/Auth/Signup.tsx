@@ -144,7 +144,7 @@ const Signup: React.FC = () => {
             <div className="mb-2 mx-9">
               <button
                 type="submit"
-                className="w-full py-2 bg-l-blue text-white rounded-full hover:bg-lh-blue transform duration-500 flex items-center justify-center"
+                className="w-full py-2 bg-l-blue text-white rounded hover:bg-lh-blue transform duration-500 flex items-center justify-center"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
