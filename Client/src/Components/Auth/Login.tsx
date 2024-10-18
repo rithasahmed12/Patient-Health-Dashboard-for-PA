@@ -66,19 +66,19 @@ const Login: React.FC = () => {
   
         // Navigate based on the role
         if (decodedToken.role === 'provider') {
-          navigate('/dashboard'); // provider dashboard
+          navigate('/dashboard');
         } else if (decodedToken.role === 'payer') {
-          navigate('/insurance/dashboard'); // payer dashboard
+          navigate('/insurance/dashboard'); 
         } else {
           toast.error('Invalid role. Please contact support.');
         }
   
       } else {
-        toast.error('Invalid email or password!');
+        toast.error(response?.data.message);
       }
     } catch (error) {
       console.error('Login error:', error);
-      toast.error('An unexpected error occurred. Please try again.');
+        toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
       setSubmitting(false);

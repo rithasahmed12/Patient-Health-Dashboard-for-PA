@@ -20,6 +20,7 @@ const PatientList: React.FC = () => {
   const [ageRange, setAgeRange] = useState<[number, number]>([0, 100]);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const navigate = useNavigate();
 
@@ -30,17 +31,28 @@ const PatientList: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    filterAndPaginatePatients();
+    if (allPatients.length > 0) {
+      filterAndPaginatePatients();
+    }
   }, [searchTerm, ageRange, currentPage, allPatients]);
 
   const loadPatients = async () => {
     setIsLoading(true);
-    const result = await getAllPatients();
-    console.log('result:',result);
-    if (result) {
-      setAllPatients(result.data);
+    setError(null);
+    try {
+      const result = await getAllPatients();
+      if (result && result.data) {
+        setAllPatients(result.data);
+      } else {
+        throw new Error('No data received from the server');
+      }
+    } catch (err) {
+      console.error('Error loading patients:', err);
+      setError('Failed to load patients. Please try again later.');
+      setAllPatients([]);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const filterAndPaginatePatients = () => {
@@ -85,7 +97,7 @@ const PatientList: React.FC = () => {
     }
   };
 
-  const totalPages = Math.ceil(allPatients.length / pageSize);
+  const totalPages = Math.max(1, Math.ceil(allPatients.length / pageSize));
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -141,7 +153,6 @@ const PatientList: React.FC = () => {
                     justifyContent: 'center',
                     alignItems: 'center',
                     boxShadow: '0px 2px 6px #AAA',
-                    transition: 'left 0.1s ease'
                   }}
                 >
                   <div
@@ -149,7 +160,6 @@ const PatientList: React.FC = () => {
                       height: '16px',
                       width: '5px',
                       backgroundColor: isDragged ? '#548BF4' : '#CCC',
-                      transition: 'background-color 0.1s ease'
                     }}
                   />
                 </div>
@@ -164,6 +174,10 @@ const PatientList: React.FC = () => {
       </div>
       {isLoading ? (
         <div className="text-center py-8">Loading...</div>
+      ) : error ? (
+        <div className="text-center py-8 text-red-600">{error}</div>
+      ) : allPatients.length === 0 ? (
+        <div className="text-center py-8">No patients found.</div>
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -191,39 +205,41 @@ const PatientList: React.FC = () => {
               </div>
             ))}
           </div>
-          <div className="mt-8 flex justify-center">
-            <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-              >
-                <span className="sr-only">Previous</span>
-                <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
-              </button>
-              {[...Array(totalPages)].map((_, i) => (
+          {allPatients.length > pageSize && (
+            <div className="mt-8 flex justify-center">
+              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                 <button
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                    currentPage === i + 1
-                      ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                      : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                  }`}
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
                 >
-                  {i + 1}
+                  <span className="sr-only">Previous</span>
+                  <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
                 </button>
-              ))}
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-              >
-                <span className="sr-only">Next</span>
-                <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
-              </button>
-            </nav>
-          </div>
+                {[...Array(totalPages)].map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentPage(i + 1)}
+                    className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                      currentPage === i + 1
+                        ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                >
+                  <span className="sr-only">Next</span>
+                  <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
+                </button>
+              </nav>
+            </div>
+          )}
         </>
       )}
     </div>

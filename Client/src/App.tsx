@@ -8,9 +8,9 @@
   import PaFormPage from "./Pages/PaFormPage"
   import InsuranceDashboard from "./Pages/InsuranceDashboard"
 import ProtectedRouteForInsurance from "./Components/PrivateRoute/ProtectedRouteForInsurance"
-import Unauthorized from "./Pages/Unauthorized"
 import ProtectedRouteForHealthCare from "./Components/PrivateRoute/ProtectedRouteForHealthCare"
 import Layout from "./Pages/Layout"
+import NotFound from "./Pages/NotFound"
 
 
 
@@ -22,7 +22,6 @@ import Layout from "./Pages/Layout"
 
           <Route path="/" element={<LoginPage/>} />
           <Route path="/register" element={<SignupPage/>} />
-          <Route path="/unauthorized" element={<Unauthorized/>} />
 
           <Route element={<ProtectRoute />}>
           <Route element={<Layout/>}>
@@ -39,6 +38,7 @@ import Layout from "./Pages/Layout"
           </Route>
           </Route>
           </Route>
+          <Route path="*" element={<NotFound/>} />
         </Routes>
       </>
     )

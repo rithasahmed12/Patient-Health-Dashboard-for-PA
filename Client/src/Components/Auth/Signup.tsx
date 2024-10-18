@@ -163,7 +163,7 @@ const Signup: React.FC = () => {
             <div className="text-center mt-4">
               <span className="text-sm">
                 Already have an account?{' '}
-                <Link to="/login" className="text-l-blue underline">Login</Link>
+                <Link to="/" className="text-l-blue underline">Login</Link>
               </span>
             </div>
           </Form>
