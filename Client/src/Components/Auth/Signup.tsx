@@ -48,7 +48,7 @@ const Signup: React.FC = () => {
         dispatch(setCredentials(response.data));
         navigate('/');
       } else {
-        toast.error('An error occurred during signup');
+        toast.error(response?.data.message);
       }
     } catch (error) {
       console.error('Signup error:', error);
