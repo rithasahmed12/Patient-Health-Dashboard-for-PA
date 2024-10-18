@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, ChevronRight, User, Sliders, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import { Range, getTrackBackground } from 'react-range';
 import { useNavigate } from 'react-router-dom';
-import { fetchPatients } from '../../api/api';
+import { getAllPatients } from '../../api/api';
 
 interface Patient {
   _id: string;
@@ -13,33 +13,47 @@ interface Patient {
   lastVisit: string;
 }
 
-
-
 const PatientList: React.FC = () => {
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const [allPatients, setAllPatients] = useState<Patient[]>([]);
+  const [displayedPatients, setDisplayedPatients] = useState<Patient[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [ageRange, setAgeRange] = useState<[number, number]>([0, 100]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [_totalPatients, setTotalPatients] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const navigate = useNavigate();
 
-  const pageSize = 6; 
+  const pageSize = 6;
 
   useEffect(() => {
     loadPatients();
-  }, [searchTerm, ageRange, currentPage]);
+  }, []);
+
+  useEffect(() => {
+    filterAndPaginatePatients();
+  }, [searchTerm, ageRange, currentPage, allPatients]);
 
   const loadPatients = async () => {
     setIsLoading(true);
-    const result = await fetchPatients(currentPage, pageSize, searchTerm, ageRange[0], ageRange[1]);
-    setPatients(result.patients);
-    setTotalPatients(result.totalCount);
-    setTotalPages(result.totalPages);
-    setCurrentPage(result.currentPage);
+    const result = await getAllPatients();
+    console.log('result:',result);
+    if (result) {
+      setAllPatients(result.data);
+    }
     setIsLoading(false);
+  };
+
+  const filterAndPaginatePatients = () => {
+    let filtered = allPatients.filter(patient => 
+      patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      patient.condition.toLowerCase().includes(searchTerm.toLowerCase())
+    ).filter(patient => 
+      patient.age >= ageRange[0] && patient.age <= ageRange[1]
+    );
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const paginatedPatients = filtered.slice(startIndex, startIndex + pageSize);
+    setDisplayedPatients(paginatedPatients);
   };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,6 +84,8 @@ const PatientList: React.FC = () => {
         return 'bg-gray-100 text-gray-800';
     }
   };
+
+  const totalPages = Math.ceil(allPatients.length / pageSize);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -151,7 +167,7 @@ const PatientList: React.FC = () => {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {patients.map((patient) => (
+            {displayedPatients.map((patient) => (
               <div key={patient._id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition duration-300">
                 <div className="p-6">
                   <div className="flex items-center mb-4">
@@ -166,8 +182,8 @@ const PatientList: React.FC = () => {
                       {patient.status}
                     </span>
                     <button
-                    onClick={()=>handleViewDetails(patient._id)}
-                    className="text-blue-500 hover:text-blue-700 flex items-center">
+                      onClick={() => handleViewDetails(patient._id)}
+                      className="text-blue-500 hover:text-blue-700 flex items-center">
                       View Details <ChevronRight size={20} className="ml-1" />
                     </button>
                   </div>
